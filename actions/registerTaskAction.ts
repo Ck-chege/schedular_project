@@ -10,7 +10,7 @@ const uuidRegex =
 
 const TaskSchema = z.object({
   name: z.string().min(1, "Full name is required"),
-  description: z.string().min(1,"Please add description on the task"),
+  description: z.string().min(1, "Please add description on the task"),
   business_id: z
     .string()
     .uuid()
@@ -27,7 +27,15 @@ export async function registerTask(formData: FormData) {
   try {
     const validatedData = TaskSchema.parse(rawData);
 
+    const { data, error } = await supabase
+      .from("tasks")
+      .insert(validatedData)
+      .select();
 
+    if (error) {
+      console.error("Error inserting task:", error);
+      return { error: error.message };
+    }
 
     console.log("Successfully registered task:", validatedData);
     return { success: true };

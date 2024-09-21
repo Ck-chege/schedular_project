@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { registerBusiness } from "./actions";
+import { registerBusiness } from "@/actions/registerBusinessAction";
 import { useRouter } from "next/navigation";
 
 export default function BusinessInfoForm() {

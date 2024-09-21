@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { registerUserAdmin } from "./registerUserAction";
+import { registerUserAdmin } from "../../../../../actions/registerUserAction";
 
 
 export default function UserAdminForm({ businessId }: { businessId: string }) {
