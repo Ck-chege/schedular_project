@@ -19,18 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-
-import { Checkbox } from "@/components/ui/checkbox";
-import { registerEmployee } from "./registerEmployee";
-import { CheckIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { registerEmployee } from "../../../../../actions/registerEmployee";
 import MultiSelect from "@/components/MultiSelect";
 
 export default function EmployeeForm({ businessId }: { businessId: string }) {
