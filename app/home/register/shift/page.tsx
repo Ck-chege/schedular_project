@@ -11,9 +11,7 @@ export default function BusinessRegistrationPage({
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
       <div className="w-full p-6">
-        <ShiftSetupMain onContinue={() => {}}/>
-        <CustomShiftSetup workdayDuration={24} />
-        <FixedShiftSetup workdayDuration={24} />
+        <ShiftSetupMain/>
       </div>
     </div>
   )

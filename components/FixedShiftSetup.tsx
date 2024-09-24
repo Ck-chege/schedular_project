@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
-const FixedShiftSetup = ({ workdayDuration }: { workdayDuration: number }) => {
+const FixedShiftSetup = ({ workdayDuration,startTime }: { workdayDuration: number, startTime:string }) => {
   const [shiftDuration, setShiftDuration] = useState(8);
   const [numberOfShifts, setNumberOfShifts] = useState(0);
   const [unallocatedTime, setUnallocatedTime] = useState(0);
@@ -15,10 +15,10 @@ const FixedShiftSetup = ({ workdayDuration }: { workdayDuration: number }) => {
   }, [workdayDuration, shiftDuration]);
 
   return (
-    <div className="container mx-auto p-4 max-w-2xl">
+    <div className="container mx-auto p-4">
       <Card>
         <CardHeader>
-          <CardTitle>Configure Fixed Shifts</CardTitle>
+          <CardTitle>Fixed Shifts Configuration</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="mb-4">
