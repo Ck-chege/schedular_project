@@ -19,13 +19,7 @@ import ManagerInfoComponent from "@/components/ManagerInfoComponent";
 import { cn } from "@/lib/utils";
 
 const BusinessLandingPage = async () => {
-  const supabase = createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const business_id = user?.user_metadata.business_id;
-
+  
   return (
     <div className="min-h-screen bg-background text-foreground p-8">
       {/* <div className="flex flex-row gap-2 w-full max-w-4xl mx-auto p-4 overflow-x-auto">
@@ -77,7 +71,6 @@ const BusinessLandingPage = async () => {
           </CardContent>
         </Card>
 
-
         <div className="col-span-1 md:col-span-2 lg:col-span-1">
           <ManagerInfoComponent />
         </div>
@@ -94,7 +87,6 @@ const BusinessLandingPage = async () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
-
         <div className="col-span-2 md:col-span-1 lg:col-span-1">
           <TasksInfoComponent />
         </div>
@@ -105,26 +97,25 @@ const BusinessLandingPage = async () => {
       </div>
 
       <Card>
-          <CardHeader>
-            <CardTitle>Shift Info</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>Manage and view current shift schedules.</p>
-            <Button className="mt-4">Schedule Shifts</Button>
-            <Link
-          href={`/home/register/shift`}
-          className={cn(
-            "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-            "disabled:pointer-events-none disabled:opacity-50",
-            "bg-primary text-primary-foreground hover:bg-primary/90",
-            "h-9 rounded-md px-3"
-          )}
-        >
-          Add
-        </Link>
-          </CardContent>
-        </Card>
+        <CardHeader>
+          <CardTitle>Shift Info</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Manage and view current shift schedules.</p>
+          <Link
+            href={`/home/shift`}
+            className={cn(
+              "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              "disabled:pointer-events-none disabled:opacity-50",
+              "bg-primary text-primary-foreground hover:bg-primary/90",
+              "h-9 rounded-md px-3 mt-4"
+            )}
+          >
+            View More
+          </Link>
+        </CardContent>
+      </Card>
     </div>
   );
 };

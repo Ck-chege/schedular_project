@@ -2,14 +2,16 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Clock, Calendar, Users, Timer, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { WorkdayConfig } from './ConfigureShiftWorkday';
-import { Shift } from './CustomShiftSetup';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ShiftVisual from './24-HourShiftVisualComponent';
+import { ShiftTemplate, WorkdayConfigTemplate } from '@/types/types';
+import { saveShiftTemplate } from '@/actions/shiftTemplateActions';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 interface ShiftReviewProps {
-  workdayConfig: WorkdayConfig;
-  shifts: Array<Shift>;
+  workdayConfig: WorkdayConfigTemplate;
+  shifts: Array<ShiftTemplate>;
   onEdit: (step: string) => void;
   onConfirm: () => void;
 }
@@ -20,8 +22,34 @@ const ShiftReview: React.FC<ShiftReviewProps> = ({ workdayConfig, shifts, onEdit
     return `${parseInt(hours, 10)}:${minutes}`;
   };
 
+  const { toast } = useToast();
+  const router = useRouter();
+  
   const totalShiftHours = shifts.reduce((acc, shift) => acc + shift.duration, 0);
   const isFullyCovered = totalShiftHours === workdayConfig.duration;
+
+  const handleConfirmAndSave = async () => {
+    const result = await saveShiftTemplate(workdayConfig, shifts);
+    if (result.error) {
+      toast({
+        title: "Error",
+        description: "Failed to save shift template. Please try again.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Shift template saved successfully!",
+        variant: "default",
+      });
+      
+      localStorage.removeItem('workdayConfig');
+      localStorage.removeItem('shifts');
+      localStorage.removeItem('currentStep');
+      // Redirect to the shift management page
+      router.push('/home/shift');
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -95,8 +123,7 @@ const ShiftReview: React.FC<ShiftReviewProps> = ({ workdayConfig, shifts, onEdit
       </Alert>
 
       <div className="flex justify-end items-center">
-    
-        <Button onClick={onConfirm} className="gap-2">
+        <Button onClick={handleConfirmAndSave} className="gap-2">
           <CheckCircle2 className="h-4 w-4" />
           Confirm and Save
         </Button>

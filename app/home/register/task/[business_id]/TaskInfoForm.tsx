@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { registerTask } from "@/actions/registerTaskAction";
+import { registerTask } from "@/actions/taskActions";
 
 export default function TaskInfoForm({ businessId }: { businessId: string }) {
   const [error, setError] = useState<string | null>(null);
