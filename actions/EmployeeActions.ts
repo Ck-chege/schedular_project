@@ -1,8 +1,10 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import exp from "constants";
 import { cookies } from "next/headers";
 import { z } from "zod";
+import { getUserBusinessId } from "./UserActions";
 
 // UUID regex for version 4 UUIDs
 const uuidRegex =
@@ -64,4 +66,83 @@ export async function registerEmployee(formData: FormData) {
     console.error("Unexpected error:", error);
     return { error: "An unexpected error occurred" };
   }
+}
+
+
+export async function registerManager(formData: FormData) {
+  const supabase = createClient()
+}
+
+export async function getEmployees() {
+  const supabase = createClient()
+
+  const business_id = await getUserBusinessId();
+
+  const { data, error } = await supabase
+  .from('employees')
+  .select('*')
+  .eq('business_id', business_id)
+
+  if (error) {
+    console.error("Error fetching employees:", error);
+    return { error: error.message };
+  }
+
+  return { data: data };
+}
+
+export async function getEmployeeEnfor(employeeId: string) {
+  const supabase = createClient()
+
+  const business_id = await getUserBusinessId();
+
+  const { data, error } = await supabase
+  .from('employees')
+  .select('business_id,email,id,max_hours,name,phone,primary_task,secondary_tasks')
+  .eq('business_id', business_id)
+  .eq('id', employeeId)
+
+  if (error) {
+    console.error("Error fetching employees:", error);
+    return { error: error.message };
+  }
+
+  return { data: data };
+}
+
+export async function getEmployeesInfo() {
+  const supabase = createClient()
+
+  const business_id = await getUserBusinessId();
+
+  const { data, error } = await supabase
+  .from('employees')
+  .select('email,id,name,phone,primary_task,secondary_tasks')
+  .eq('business_id', business_id)
+
+  if (error) {
+    console.error("Error fetching employees:", error);
+    return { error: error.message };
+  }
+
+  return { data: data };
+}
+
+export async function getEmployeesDashboard() {
+  const supabase = createClient()
+  const business_id = await getUserBusinessId();
+
+  // Fetch employees data
+  const { data: employees, error } = await supabase
+    .from('employees')
+    .select('name, email, primary_task')
+    .eq('business_id', business_id)
+    .order('created_at', { ascending: false })
+    .limit(3);
+
+  if (error) {
+    console.error('Error fetching employees:', error);
+    return { error: error.message };
+  }
+  return { employees: employees };
 }

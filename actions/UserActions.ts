@@ -3,6 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { z } from "zod";
+import { redirect } from "next/navigation";
 
 // UUID regex for version 4 UUIDs
 const uuidRegex =
@@ -64,4 +65,23 @@ export async function registerUserAdmin(formData: FormData) {
     console.error("Unexpected error:", error);
     return { error: "An unexpected error occurred" };
   }
+}
+
+
+export async function getUser() {
+  const supabase = createClient()
+  const {data: { user }} = await supabase.auth.getUser();
+
+  if (!user) {
+    supabase.auth.signOut()
+    redirect('/login')
+  }
+
+  return user;
+}
+
+export async function getUserBusinessId() {
+  const user = await getUser()
+  const business_id = user.user_metadata.business_id;
+  return business_id;
 }
