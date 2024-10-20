@@ -26,26 +26,6 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // const role = user?.user_metadata?.role
-
-  // if(role==='admin'){
-  //   const url = request.nextUrl.clone()
-  //   url.pathname = '/admin'
-  //   return NextResponse.redirect(url)
-  // }
-  // if(role==='manager'){
-  //   const url = request.nextUrl.clone()
-  //   url.pathname = '/home'
-  //   return NextResponse.redirect(url)
-  // }
-
-  // if(role==='employee'){
-  //   const url = request.nextUrl.clone()
-  //   url.pathname = '/employee'
-  //   return NextResponse.redirect(url)
-  // }
-
-
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
   // creating a new response object with NextResponse.next() make sure to:
   // 1. Pass the request in it, like so:
