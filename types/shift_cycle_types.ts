@@ -1,4 +1,3 @@
-import { GalleryThumbnails } from "lucide-react";
 import { ShiftTemplate } from "./types";
 
 export interface ShiftTaskInfo {
@@ -7,7 +6,7 @@ export interface ShiftTaskInfo {
 }
 
 export interface Shift extends ShiftTemplate {
-  tasks: ShiftTaskInfo[];
+  tasks: Map<string, ShiftTaskInfo>; // Using Map to store tasks by taskId
 }
 
 export interface Workday {
@@ -16,7 +15,22 @@ export interface Workday {
   date: string;
   startTime: string;
   endTime: string;
-  shifts: Shift[];
+  shifts: Shift[]; // Using Set to store unique Shift objects
+}
+
+
+export interface Task {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export enum ShiftCycleStatus {
+  Created = 'created',
+  SchedulingInProcess = 'scheduling_in_process',
+  SchedulingComplete = 'scheduling_complete',
+  Active = 'active',
+  Complete = 'complete'
 }
 
 export interface ShiftCycle {
@@ -25,11 +39,9 @@ export interface ShiftCycle {
   numWorkDays: number;
   startDate: string;
   endDate: string;
-  workdays: Workday[];
+  status: ShiftCycleStatus;
+  workdays: Map<string, Workday>;
 }
 
-export interface Task {
-  id: string;
-  name: string;
-  description: string;
-}
+
+
