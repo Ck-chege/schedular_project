@@ -83,5 +83,5 @@ export async function getUser() {
 export async function getUserBusinessId() {
   const user = await getUser()
   const business_id = user.user_metadata.business_id;
-  return business_id;
+  return business_id as string;
 }

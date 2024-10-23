@@ -56,7 +56,8 @@ export async function getShiftTemplates() {
     return { error: error.message };
   }
 
-  console.log("data", data)
+  console.log("data------------------------------", data)
+
 
   const transformedData: WorkdayConfigTemplateWithShiftsTemplate[] = data.map(
     (template) => ({
@@ -66,16 +67,25 @@ export async function getShiftTemplates() {
       endTime: template.end_time,
       duration: template.duration,
       shiftType: template.shift_type as "fixed" | "custom",
-      shifts: Array.isArray(template.shifts)
-      ? template.shifts.map((shift: any, index: number): ShiftTemplate => ({
-          id: shift.id || index + 1,
-          title: shift.title,
-          startTime: shift.startTime,
-          endTime: shift.endTime,
-          duration: shift.duration,
-        }))
-      : [],
+      shifts: template.shifts ? JSON.parse(template.shifts as string).map((shift: any, index: number): ShiftTemplate => ({
+        id: shift.id || index + 1,
+        title: shift.title,
+        startTime: shift.startTime,
+        endTime: shift.endTime,
+        duration: shift.duration,
+      })) : [],
+      // shifts: Array.isArray(template.shifts)
+      // ? template.shifts.map((shift: any, index: number): ShiftTemplate => ({
+      //     id: shift.id || index + 1,
+      //     title: shift.title,
+      //     startTime: shift.startTime,
+      //     endTime: shift.endTime,
+      //     duration: shift.duration,
+      //   }))
+      // : [],
     })
   );
+
+  console.log("data*************", transformedData)
   return { workDayTemplates: transformedData }
 }

@@ -4,6 +4,7 @@ import { Task } from "@/types/shift_cycle_types";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { z } from "zod";
+import { getUserBusinessId } from "./UserActions";
 
 // UUID regex for version 4 UUIDs
 const uuidRegex =
@@ -12,16 +13,20 @@ const uuidRegex =
 const TaskSchema = z.object({
   name: z.string().min(1, "Full name is required"),
   description: z.string().min(1, "Please add description on the task"),
-  business_id: z
-    .string()
-    .uuid()
-    .refine((val) => uuidRegex.test(val), {
-      message: `Invalid UUID format for business_id`,
-    }),
+  // business_id: z
+  //   .string()
+  //   .uuid()
+  //   .refine((val) => uuidRegex.test(val), {
+  //     message: `Invalid UUID format for business_id`,
+  //   }),
 });
 
 export async function registerTask(formData: FormData) {
   const supabase = createClient();
+
+  const business_id = await getUserBusinessId();
+
+  console.log("Received form data:", formData);
 
   const rawData = Object.fromEntries(formData.entries());
 
@@ -30,7 +35,7 @@ export async function registerTask(formData: FormData) {
 
     const { data, error } = await supabase
       .from("tasks")
-      .insert(validatedData)
+      .insert({ ...validatedData, business_id })
       .select();
 
     if (error) {
@@ -49,26 +54,20 @@ export async function registerTask(formData: FormData) {
     return { error: "An unexpected error occurred" };
   }
 }
-
 export async function getTasks() {
   const supabase = createClient();
+
+  const business_id = await getUserBusinessId();
 
   
 
   try {
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-  
-    if (!user) {
-      return { error: "User not authenticated" }
-    }
 
     const { data, error } = await supabase
       .from("tasks")
       .select("*")
-      .eq("business_id", user.user_metadata.business_id);
+      .eq("business_id", business_id);
 
     if (error) {
       console.error("Error fetching tasks:", error);
@@ -82,7 +81,7 @@ export async function getTasks() {
       description: task.description,
     }))
 
-    return { success: true, data: transformedData };
+    return {data: transformedData };
   } catch (error) {
     console.error("Unexpected error:", error);
     return { error: `An unexpected error occurred while fetching tasks ${error}` };

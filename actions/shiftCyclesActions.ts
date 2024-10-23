@@ -3,137 +3,96 @@
 import { createClient } from "@/utils/supabase/server";
 import {
   Shift,
-  ShiftCycle,
+  NewShiftCycle,
   ShiftCycleStatus,
   ShiftTaskInfo,
   Workday,
 } from "@/types/shift_cycle_types";
+import { v4 as uuid } from "uuid";
+import { getUserBusinessId } from "./UserActions";
+import { ShiftCycle, ShiftCycleWithWorkdaysAndShifts } from "@/types/tableDataTypes";
 
-export async function insertShiftCycleData(shiftCycle: ShiftCycle) {
-  try {
-    // Set initial status to Created
-    shiftCycle.status = ShiftCycleStatus.Created;
-    const cycleData = await insertShiftCycle(shiftCycle);
-
-    // Update status to SchedulingInProcess
-    await updateShiftCycleStatus(
-      cycleData.id,
-      ShiftCycleStatus.SchedulingInProcess
-    );
-
-    const workdayInserts = Array.from(shiftCycle.workdays.values()).map(
-      async (workday) => {
-        const workdayData = await insertWorkday(workday, shiftCycle.id);
-
-        const shiftInserts = workday.shifts.map(async (shift) => {
-          const shiftData = await insertShift(shift, workdayData.id);
-
-          const taskInserts = Array.from(shift.tasks.entries()).map(
-            async ([taskId, taskInfo]) => {
-              await insertShiftTask(shiftData.id, taskId, taskInfo);
-            }
-          );
-
-          await Promise.all(taskInserts);
-        });
-
-        await Promise.all(shiftInserts);
-      }
-    );
-
-    await Promise.all(workdayInserts);
-
-    // Update status to SchedulingComplete
-    await updateShiftCycleStatus(
-      cycleData.id,
-      ShiftCycleStatus.SchedulingComplete
-    );
-
-    return { success: true };
-  } catch (error) {
-    console.error("Error inserting shift cycle data:", error);
-    return { success: false, error: (error as Error).message };
-  }
-}
-
-export async function insertShiftCycleDataTransaction(shiftCycle: ShiftCycle) {
+export async function insertShiftCycleData(shiftCycle: NewShiftCycle) {
   const supabase = createClient();
-
   try {
-    // Start transaction
-    const { error: beginError } = await supabase.rpc("begin_transaction");
-    if (beginError)
-      throw new Error(`Error starting transaction: ${beginError.message}`);
-
     // Set initial status to Created
     shiftCycle.status = ShiftCycleStatus.Created;
-    const cycleData = await insertShiftCycle(supabase, shiftCycle);
-
-    // Update status to SchedulingInProcess
-    await updateShiftCycleStatus(
+    const { id: cycle_id, error } = await insertShiftCycle(
       supabase,
-      cycleData.id,
-      ShiftCycleStatus.SchedulingInProcess
+      shiftCycle
     );
+   
+    if (error != null) throw new Error(`Error inserting shift cycle: ${error}`);
 
-    for (const workday of Array.from(shiftCycle.workdays.values())) {
-      const workdayData = await insertWorkday(supabase, workday, cycleData.id);
+    // // Update status to SchedulingInProcess
+    // await updateShiftCycleStatus(
+    //   supabase,
+    //   cycleData.id,
+    //   ShiftCycleStatus.SchedulingInProcess
+    // );
 
-      for (const shift of workday.shifts) {
-        const shiftData = await insertShift(supabase, shift, workdayData.id);
+    Array.from(shiftCycle.workdays.values()).map(async (workday) => {
+      const { id: work_day_id, error } = await insertWorkday(
+        supabase,
+        workday,
+        cycle_id
+      );
+      console.log(work_day_id, error);
+      if (error != null) throw new Error(`Error inserting workday: ${error}`);
 
-        for (const [taskId, taskInfo] of Array.from(shift.tasks.entries())) {
-          await insertShiftTask(supabase, shiftData.id, taskId, taskInfo);
-        }
-      }
-    }
+      workday.shifts.map(async (shift) => {
+        const { id: shift_id, error } = await insertShift(
+          supabase,
+          shift,
+          work_day_id
+        );
+        if (error != null) throw new Error(`Error inserting shift: ${error}`);
 
-    // Update status to SchedulingComplete
-    await updateShiftCycleStatus(
-      supabase,
-      cycleData.id,
-      ShiftCycleStatus.SchedulingComplete
-    );
+        Array.from(shift.tasks.entries()).map(async ([taskId, taskInfo]) => {
+          const {error}= await insertShiftTask(supabase, shift_id, taskInfo.taskId, taskInfo);
+          if (error != null) throw new Error(`Error inserting shift task: ${error}`);
+        });
+      });
+    });
 
-    // Commit transaction
-    const { error: commitError } = await supabase.rpc("commit_transaction");
-    if (commitError)
-      throw new Error(`Error committing transaction: ${commitError.message}`);
+    // // Update status to SchedulingComplete
+    // await updateShiftCycleStatus(
+    //   supabase,
+    //   cycle_id,
+    //   ShiftCycleStatus.SchedulingComplete
+    // );
 
     return { success: true };
   } catch (error) {
-    // Rollback transaction on error
-    const { error: rollbackError } = await supabase.rpc("rollback_transaction");
-    if (rollbackError)
-      console.error("Error rolling back transaction:", rollbackError);
-
-    console.error("Error inserting shift cycle data:", error);
+    console.error("Error inserting shift cycle:", error);
     return { success: false, error: (error as Error).message };
   }
 }
 
 
+export async function insertShiftCycle(supabase: any, shiftCycle: NewShiftCycle) {
 
-
-
-export async function insertShiftCycle(supabase: any,shiftCycle: ShiftCycle) {
+  const business_id = await getUserBusinessId()
 
   const { data, error } = await supabase
     .from("shift_cycles")
     .insert({
+      id: uuid(),
       title: shiftCycle.title,
       num_work_days: shiftCycle.numWorkDays,
       start_date: shiftCycle.startDate,
       end_date: shiftCycle.endDate,
       status: shiftCycle.status,
+      business_id: business_id,
     })
     .select("id")
     .single();
 
-  if (error) {
-    error: error.message;
-  }
-  return { id: data.id };
+  if (error)
+    return {
+      error: error.message,
+    };
+  return { id: data.id, error: null };
 }
 
 export async function updateShiftCycleStatus(
@@ -141,10 +100,10 @@ export async function updateShiftCycleStatus(
   cycleId: string,
   status: ShiftCycleStatus
 ) {
-
+  
   const { data, error } = await supabase
     .from("shift_cycles")
-    .update({ status })
+    .update({ status:  status })
     .eq("id", cycleId)
     .select()
     .single();
@@ -154,9 +113,26 @@ export async function updateShiftCycleStatus(
   return data;
 }
 
-export async function activateShiftCycle(cycleId: string) {
+export async function allowEmployeeAvailabilityConfig(cycleId: string,) {
+  const supabase = createClient();
   try {
     const updatedCycle = await updateShiftCycleStatus(
+      supabase,
+      cycleId,
+      ShiftCycleStatus.SchedulingInProcess
+    );
+    return { success: true, data: updatedCycle };
+  } catch (error) {
+    console.error("Error allowing employee availability configuration:", error);
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+export async function activateShiftCycle(cycleId: string) {
+  const supabase = createClient();
+  try {
+    const updatedCycle = await updateShiftCycleStatus(
+      supabase,
       cycleId,
       ShiftCycleStatus.Active
     );
@@ -167,9 +143,13 @@ export async function activateShiftCycle(cycleId: string) {
   }
 }
 
+
+
 export async function completeShiftCycle(cycleId: string) {
+  const supabase = createClient();
   try {
     const updatedCycle = await updateShiftCycleStatus(
+      supabase,
       cycleId,
       ShiftCycleStatus.Complete
     );
@@ -187,47 +167,142 @@ export async function insertShiftTask(
   taskInfo: ShiftTaskInfo
 ) {
   const { error } = await supabase.from("shift_tasks").insert({
+    id: uuid(),
     shift_id: shiftId,
     task_id: taskId,
     employees_required: taskInfo.employeesRequired,
   });
 
-  if (error) throw new Error(`Error inserting shift task: ${error.message}`);
+  if (error) return { error: error.message };
+
+  return { success: true };
 }
 
-export async function insertShift(supabase: any,shift: Shift, workdayId: string) {
-
+export async function insertShift(
+  supabase: any,
+  shift: Shift,
+  workdayId: string
+) {
   const { data, error } = await supabase
     .from("shifts")
     .insert({
+      id: uuid(),
       workday_id: workdayId,
       duration: shift.duration,
       start_time: shift.startTime,
       end_time: shift.endTime,
       title: shift.title,
     })
-    .select()
+    .select("id")
     .single();
 
-  if (error) throw new Error(`Error inserting shift: ${error.message}`);
-  return data;
+  if (error)
+    return {
+      error: error.message,
+    };
+  return { id: data.id };
 }
 
-export async function insertWorkday(supabase: any,workday: Workday, shiftCycleId: string) {
-
+export async function insertWorkday(
+  supabase: any,
+  workday: Workday,
+  shiftCycleId: string
+) {
   const { data, error } = await supabase
     .from("workdays")
     .insert({
-      id: workday.id,
+      id: uuid(),
       shift_cycle_id: shiftCycleId,
       title: workday.title,
       date: workday.date,
       start_time: workday.startTime,
       end_time: workday.endTime,
     })
-    .select()
+    .select("id")
     .single();
 
-  if (error) throw new Error(`Error inserting workday: ${error.message}`);
-  return data;
+  if (error)
+    return {
+      error: error.message,
+    };
+  return { id: data.id };
+}
+
+
+export async function getShiftCycle(cycleId: string) {
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from("shift_cycles")
+      .select("*")
+      .eq("id", cycleId)
+      .single();
+
+      if (error) {
+        console.error("Error getting shift cycle:", error);
+        return { error: (error).message };
+      }
+
+      return { success: true, data: data };
+  }
+  catch (error) {
+    console.error("Error getting shift cycle:", error);
+    return { error: (error as Error).message };
+  }
+}
+
+export async function getShiftCycleWithWorkdaysAndShifts(cycleId: string) {
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from("shift_cycles")
+      .select("*, workdays(*, shifts(*))")
+      .eq("id", cycleId)
+      .single();
+
+      if (error) {
+        console.error("Error getting shift cycle:", error);
+        return { error: (error).message };
+      }
+
+      return {data: data as ShiftCycleWithWorkdaysAndShifts };
+  }
+  catch (error) {
+    console.error("Error getting shift cycle:", error);
+    return { error: (error as Error).message };
+  }
+}
+
+export async function getOpenShiftCycles() {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+      .from("shift_cycles")
+      .select("*")
+      .neq("status", ShiftCycleStatus.Complete);
+
+    if (error) {
+      console.error("Error getting shift cycle:", error);
+      return { error: error.message };
+    }
+
+    return { data: data as ShiftCycle[] };
+}
+
+
+export async function getShiftCyclesInSchedulingProcess() {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+      .from("shift_cycles")
+      .select("*")
+      .eq("status", ShiftCycleStatus.SchedulingInProcess)
+      .order("start_date", { ascending: true });
+
+    if (error) {
+      console.error("Error getting shift cycle:", error);
+      return { error: error.message };
+    }
+
+    return { data: data as ShiftCycle[] };
 }
