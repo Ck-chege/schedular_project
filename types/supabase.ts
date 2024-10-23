@@ -128,6 +128,39 @@ export type Database = {
           },
         ]
       }
+      employee_tasks: {
+        Row: {
+          employee_id: string
+          is_primary: boolean
+          task_id: string
+        }
+        Insert: {
+          employee_id: string
+          is_primary?: boolean
+          task_id: string
+        }
+        Update: {
+          employee_id?: string
+          is_primary?: boolean
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_employee_tasks_employee_id__id"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_employee_tasks_task_id__id"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shift_cycles: {
         Row: {
           business_id: string
