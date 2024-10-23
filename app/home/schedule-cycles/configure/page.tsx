@@ -9,7 +9,7 @@ export default async function ConfigureScheduleCyclePage() {
     console.error("Error fetching tasks:", taskError);
   }
 
-  const { data: templates, error: shiftError } = await getShiftTemplates();
+  const { workDayTemplates: templates, error: shiftError } = await getShiftTemplates();
   if (shiftError) {
     console.error("Error fetching tasks:", shiftError);
   }

@@ -39,7 +39,7 @@ const FixedShiftSetup: React.FC<FixedShiftSetupProps> = ({ workdayDuration, star
   }, [workdayDuration, shiftDuration]);
 
   const generateShifts = (count: number, duration: number) => {
-    let currentTime = new Date(`2000-01-01T${startTime}`);
+    const currentTime = new Date(`2000-01-01T${startTime}`);
     const newShifts = [];
     for (let i = 0; i < count; i++) {
       const shiftStart = new Date(currentTime);

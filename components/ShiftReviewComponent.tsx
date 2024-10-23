@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, Calendar, Users, Timer, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Clock, Users, Timer, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ShiftVisual from './24-HourShiftVisualComponent';
 import { ShiftTemplate, WorkdayConfigTemplate } from '@/types/types';
@@ -16,7 +16,10 @@ interface ShiftReviewProps {
   onConfirm: () => void;
 }
 
-const ShiftReview: React.FC<ShiftReviewProps> = ({ workdayConfig, shifts, onEdit, onConfirm }) => {
+const ShiftReview: React.FC<ShiftReviewProps> = ({ 
+  workdayConfig, shifts, 
+  // onEdit, onConfirm
+ }) => {
   const formatTime = (time: string) => {
     const [hours, minutes] = time.split(':');
     return `${parseInt(hours, 10)}:${minutes}`;

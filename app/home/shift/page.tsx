@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   Calendar,
@@ -30,8 +30,9 @@ import {
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import UpcomingSchedules from "@/components/UpcomingSchedules";
+import { getShiftTemplates } from "@/actions/shiftTemplateActions";
 
-const ShiftDurationBadge = ({
+const ShiftDurationBadge =({
   duration,
   index,
 }: {
@@ -52,7 +53,7 @@ const ShiftDurationBadge = ({
   </Badge>
 );
 
-const ShiftDashboard = () => {
+const ShiftDashboard = async () => {
   // Mock data for the dashboard
   const currentShifts = [
     {
@@ -85,42 +86,18 @@ const ShiftDashboard = () => {
   ];
 
   // Updated mock data for workday shifts plan templates
-  const shiftTemplates = [
-    {
-      id: 1,
-      name: "Standard Weekday",
-      shifts: 3,
-      workdayDuration: "24 hours",
-      startTime: "00:00",
-      endTime: "24:00",
-      shiftDurations: [8, 8, 8],
-    },
-    {
-      id: 2,
-      name: "Weekend Coverage",
-      shifts: 2,
-      workdayDuration: "20 hours",
-      startTime: "04:00",
-      endTime: "24:00",
-      shiftDurations: [10, 10],
-    },
-    {
-      id: 3,
-      name: "Holiday Schedule",
-      shifts: 4,
-      workdayDuration: "24 hours",
-      startTime: "00:00",
-      endTime: "24:00",
-      shiftDurations: [6, 6, 6, 6],
-    },
-  ];
 
-  // Helper function to format shift durations
-  const formatShiftDurations = (durations: number[]) => {
-    return durations
-      .map((duration, index) => `Shift ${index + 1} - ${duration}hrs`)
-      .join(", ");
-  };
+  const { workDayTemplates, error } = await getShiftTemplates()
+  if (error) {
+    console.error('Failed to fetch templates:', error);
+  }
+
+  // // Helper function to format shift durations
+  // const formatShiftDurations = (durations: number[]) => {
+  //   return durations
+  //     .map((duration, index) => `Shift ${index + 1} - ${duration}hrs`)
+  //     .join(", ");
+  // };
 
   return (
     <div className="container mx-auto p-4 space-y-6">
@@ -265,19 +242,19 @@ const ShiftDashboard = () => {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {shiftTemplates.map((template) => (
+        {workDayTemplates && workDayTemplates.map((template) => (
           <TableRow key={template.id}>
-            <TableCell className="font-medium">{template.name}</TableCell>
-            <TableCell className="text-center">{template.shifts}</TableCell>
-            <TableCell className="text-center">{template.workdayDuration} hrs</TableCell>
+            <TableCell className="font-medium">{template.title}</TableCell>
+            <TableCell className="text-center">{template.shifts.length}</TableCell>
+            <TableCell className="text-center">{template.duration} hrs</TableCell>
             <TableCell className="text-center">{template.startTime}</TableCell>
             <TableCell className="text-center">{template.endTime}</TableCell>
             <TableCell>
               <div className="flex flex-wrap gap-1">
-                {template.shiftDurations.map((duration, index) => (
+                {template.shifts.map((shift, index) => (
                   <ShiftDurationBadge
                     key={index}
-                    duration={duration}
+                    duration={shift.duration}
                     index={index}
                   />
                 ))}
@@ -301,7 +278,7 @@ const ShiftDashboard = () => {
               </Button>
             </TableCell>
           </TableRow>
-        ))}
+        )) || (<p className="w-full justify-center items-center p-3">No templates available.</p>)}
       </TableBody>
     </Table>
           <Link
@@ -322,5 +299,4 @@ const ShiftDashboard = () => {
     </div>
   );
 };
-
 export default ShiftDashboard;

@@ -33,6 +33,7 @@ const stepInfo: { [key in SetupStep]: { title: string; description: string } } =
 const ShiftSetupWizard = () => {
   const [workdayConfig, setWorkdayConfig] = useState<WorkdayConfigTemplate>(defaultWorkdayConfig);
   const [currentStep, setCurrentStep] = useState<SetupStep>("configure");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [shiftSetup, setShiftSetup] = useState<any>(null);
   const [isMounted, setIsMounted] = useState(false); // Track whether the component has mounted
 
@@ -110,6 +111,7 @@ const ShiftSetupWizard = () => {
     return ["configure", workdayConfig.shiftType, "review"] as SetupStep[];
   }, [workdayConfig.shiftType]);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleShiftSetup = (shifts: any) => {
     setShiftSetup(shifts);
     setCurrentStep("review");

@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { Calendar, momentLocalizer, Event } from 'react-big-calendar';
+import React, { useState, useEffect } from 'react';
+import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -75,41 +75,41 @@ const WorkdayConfigSelectorCalender: React.FC<WorkdayConfigSelectorProps> = ({
     onChange({ ...config, shifts: updatedShifts });
   };
 
-  const onEventResize = useCallback(
-    ({ event, start, end }: { event: Event; start: Date; end: Date }) => {
-      const updatedShifts = shifts.map((shift) =>
-        shift.title === event.title
-          ? {
-              ...shift,
-              startTime: moment(start).format('HH:mm'),
-              endTime: moment(end).format('HH:mm'),
-              duration: moment(end).diff(moment(start), 'hours', true),
-            }
-          : shift
-      );
-      setShifts(updatedShifts);
-      onChange({ ...config, shifts: updatedShifts });
-    },
-    [shifts, onChange, config]
-  );
+  // const onEventResize = useCallback(
+  //   ({ event, start, end }: { event: Event; start: Date; end: Date }) => {
+  //     const updatedShifts = shifts.map((shift) =>
+  //       shift.title === event.title
+  //         ? {
+  //             ...shift,
+  //             startTime: moment(start).format('HH:mm'),
+  //             endTime: moment(end).format('HH:mm'),
+  //             duration: moment(end).diff(moment(start), 'hours', true),
+  //           }
+  //         : shift
+  //     );
+  //     setShifts(updatedShifts);
+  //     onChange({ ...config, shifts: updatedShifts });
+  //   },
+  //   [shifts, onChange, config]
+  // );
 
-  const onEventDrop = useCallback(
-    ({ event, start, end }: { event: Event; start: Date; end: Date }) => {
-      const updatedShifts = shifts.map((shift) =>
-        shift.title === event.title
-          ? {
-              ...shift,
-              startTime: moment(start).format('HH:mm'),
-              endTime: moment(end).format('HH:mm'),
-              duration: moment(end).diff(moment(start), 'hours', true),
-            }
-          : shift
-      );
-      setShifts(updatedShifts);
-      onChange({ ...config, shifts: updatedShifts });
-    },
-    [shifts, onChange, config]
-  );
+  // const onEventDrop = useCallback(
+  //   ({ event, start, end }: { event: Event; start: Date; end: Date }) => {
+  //     const updatedShifts = shifts.map((shift) =>
+  //       shift.title === event.title
+  //         ? {
+  //             ...shift,
+  //             startTime: moment(start).format('HH:mm'),
+  //             endTime: moment(end).format('HH:mm'),
+  //             duration: moment(end).diff(moment(start), 'hours', true),
+  //           }
+  //         : shift
+  //     );
+  //     setShifts(updatedShifts);
+  //     onChange({ ...config, shifts: updatedShifts });
+  //   },
+  //   [shifts, onChange, config]
+  // );
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;

@@ -4,6 +4,7 @@ CREATE TABLE employees (
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     phone VARCHAR(20) NOT NULL,
+    is_auth_set: BOOLEAN NOT NULL DEFAULT FALSE,
     primary_task VARCHAR(100) NOT NULL,
     secondary_tasks VARCHAR(100)[] NOT NULL DEFAULT '{}',
     max_hours INTEGER NOT NULL CHECK (max_hours >= 0 AND max_hours <= 168),

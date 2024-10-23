@@ -9,29 +9,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import Link from "next/link";
-import { createClient } from "@/utils/supabase/server";
 import { List, PlusCircle } from "lucide-react";
 import { cn } from "@/lib/utils"; // Make sure you have this utility function
+import { getEmployeesDashboard } from "@/actions/EmployeeActions";
+import { getUserBusinessId } from "@/actions/UserActions";
 
 export default async function EmployeesInfoComponent() {
-  const supabase = createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const business_id = user?.user_metadata.business_id;
-
-  // Fetch employees data
-  const { data: employees, error } = await supabase
-    .from('employees')
-    .select('name, email, primary_task')
-    .eq('business_id', business_id)
-    .limit(3);
+  const business_id = await getUserBusinessId()
+  const {data:employees , error} = await getEmployeesDashboard()
 
   if (error) {
     console.error('Error fetching employees:', error);
   }
+
+
 
   return (
     <Card className="col-span-2">
@@ -65,7 +57,7 @@ export default async function EmployeesInfoComponent() {
               <TableRow key={index}>
                 <TableCell>{employee.name}</TableCell>
                 <TableCell>{employee.email}</TableCell>
-                <TableCell>{employee.primary_task}</TableCell>
+                <TableCell>{employee.tasks.find(task => task.is_primary)?.name || 'No primary task'}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -73,7 +65,7 @@ export default async function EmployeesInfoComponent() {
         <div className="mt-4 flex justify-end">
           
           <Link
-            href="/employees"
+            href="home/employees"
             className={cn(
               "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",

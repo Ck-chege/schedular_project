@@ -70,7 +70,6 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { createClient } from '@/utils/supabase/server';
 import Link from 'next/link';
@@ -91,7 +90,7 @@ const ManagerAccountInfo = async () => {
         <div className="flex items-center space-x-4">
           <Avatar className="w-16 h-16">
             <AvatarImage src="https://picsum.photos/200/300?grayscale" alt={full_name} />
-            <AvatarFallback>{full_name.charAt(0)}</AvatarFallback>
+            <AvatarFallback>{full_name?.charAt(0) ?? "a"}</AvatarFallback>
           </Avatar>
           <div>
             <CardTitle className="text-2xl font-bold">{full_name}</CardTitle>

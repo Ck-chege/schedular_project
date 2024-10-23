@@ -19,17 +19,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { registerEmployee } from "../../../../../actions/registerEmployee";
+import { registerEmployee } from "../../../../../actions/EmployeeActions";
 import MultiSelect from "@/components/MultiSelect";
+import { Task } from "@/types/shift_cycle_types";
 
-export default function EmployeeForm({ businessId }: { businessId: string }) {
+export default function EmployeeForm({ businessId,tasks }: { businessId: string, tasks: Task[] }) {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const [primaryTask, setPrimaryTask] = useState<string>("");
+  const [primaryTaskId, setPrimaryTaskId] = useState<string>("");
   const [secondaryTasks, setSecondaryTasks] = useState<string[]>([]);
-  
 
-  const taskOptions = ["Dish washer", "Waiter", "Cleaner", "Cashier"];
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -37,7 +36,7 @@ export default function EmployeeForm({ businessId }: { businessId: string }) {
 
     const formData = new FormData(event.currentTarget);
     formData.append("business_id", businessId);
-    formData.append("primaryTask", primaryTask);
+    formData.append("primaryTask", primaryTaskId);
     formData.append("secondaryTasks", JSON.stringify(secondaryTasks));
 
     const result = await registerEmployee(formData);
@@ -73,16 +72,16 @@ export default function EmployeeForm({ businessId }: { businessId: string }) {
             <Label htmlFor="primaryTask">Primary Task</Label>
             <Select
               name="primaryTask"
-              value={primaryTask}
-              onValueChange={setPrimaryTask}
+              value={primaryTaskId}
+              onValueChange={setPrimaryTaskId}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a primary task" />
               </SelectTrigger>
               <SelectContent>
-                {taskOptions.map((task) => (
-                  <SelectItem key={task} value={task}>
-                    {task}
+                {tasks.map((task) => (
+                  <SelectItem key={task.id} value={task.id}>
+                    {task.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -92,11 +91,13 @@ export default function EmployeeForm({ businessId }: { businessId: string }) {
           <div className="space-y-2">
             <Label>Secondary Tasks</Label>
             <MultiSelect
-              options={taskOptions.filter(task => task !== primaryTask)}
-              value={secondaryTasks}
-              onChange={setSecondaryTasks}
+              options={tasks.filter(task => task.id !== primaryTaskId).map(task => task.name)}
+              value={secondaryTasks.map(taskId => tasks.find(task => task.id === taskId)?.name || "")}
+              onChange={(selectedOptions) => {
+                setSecondaryTasks(selectedOptions.map(option => tasks.find(task => task.name === option)?.id || ""));
+              }}
               placeholder="Select secondary tasks"
-              primaryTask={primaryTask}
+              primaryTask={primaryTaskId}
             />
           </div>
 

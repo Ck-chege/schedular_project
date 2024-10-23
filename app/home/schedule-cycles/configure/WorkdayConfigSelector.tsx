@@ -15,16 +15,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Clock,
   Edit2,
   Plus,
   Trash,
-  ChevronDown,
   ChevronUp,
 } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { WorkdayConfigTemplateWithShiftsTemplate } from "@/types/types";
-import { Shift, Workday } from "@/types/shift_cycle_types";
+import { Shift, ShiftTaskInfo, Workday } from "@/types/shift_cycle_types";
+import { useToast } from "@/hooks/use-toast";
 
 interface WorkdayConfigSelectorProps {
   dayIndex: number;
@@ -43,31 +42,68 @@ const WorkdayConfigSelector: React.FC<WorkdayConfigSelectorProps> = ({
   editingShiftId,
   setEditingShiftId,
 }) => {
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const { toast } = useToast(); // Initialize toast
+
+  // Local state to manage shifts as an array
+  const [shifts, setShifts] = useState<Shift[]>([]);
+
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
+    null
+  );
   const [newSetUp, setNewSetUp] = useState(false);
   const [isSelectDisabled, setIsSelectDisabled] = useState(false);
-  const [expandedShifts, setExpandedShifts] = useState<string[]>([]);
   const [editedShiftData, setEditedShiftData] = useState<Shift | null>(null);
   const [selectLabel, setSelectLabel] = useState("Select Template"); // Initialize selectLabel
-  
+
+  // Helper function to check for duplicate IDs
+  const hasDuplicateIds = (shiftsArray: Shift[]) => {
+    const ids = shiftsArray.map((shift) => shift.id);
+    return new Set(ids).size !== ids.length;
+  };
+
+  // Initialize shifts with unique IDs only once
   useEffect(() => {
-    // Update the selectLabel based on the conditions
+    const shiftsWithIds = Array.from(workday.shifts).map((shift) => ({
+      ...shift,
+      id: shift.id || uuidv4(), // Assign existing ID or generate a new one
+    }));
+
+    if (hasDuplicateIds(shiftsWithIds)) {
+      console.error("Duplicate shift IDs detected during initialization!");
+      toast({
+        title: "Initialization Error",
+        description: "Duplicate shift IDs detected. Please check your data.",
+        variant: "destructive",
+      });
+    }
+
+    setShifts(shiftsWithIds);
+  }, [workday.shifts, toast]);
+
+  // Update the selectLabel based on the conditions
+  useEffect(() => {
     if (newSetUp) {
       setSelectLabel("New Setup");
     } else if (selectedTemplateId) {
-      const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
-      setSelectLabel(selectedTemplate ? selectedTemplate.title : "Select Template");
+      const selectedTemplate = templates.find(
+        (t) => t.id === selectedTemplateId
+      );
+      setSelectLabel(
+        selectedTemplate ? selectedTemplate.title : "Select Template"
+      );
     } else {
       setSelectLabel("Select Template");
     }
   }, [newSetUp, selectedTemplateId, templates]);
 
+  // Set selectedTemplateId based on workday.id
   useEffect(() => {
     if (workday.id) {
       setSelectedTemplateId(workday.id);
     }
   }, [workday.id]);
 
+  // Calculate workday times based on shifts
   const calculateWorkdayTimes = useCallback((shifts: Shift[]) => {
     if (shifts.length === 0) {
       return { startTime: "", endTime: "", isEndTimeNextDay: false };
@@ -79,9 +115,10 @@ const WorkdayConfigSelector: React.FC<WorkdayConfigSelectorProps> = ({
     });
 
     const endTimes = shifts.map((shift) => {
-      let [hour, minute] = shift.endTime.split(":").map(Number);
+      const [hour, minute] = shift.endTime.split(":").map(Number);
       let endTimeInMinutes = hour * 60 + minute;
 
+      // Adjust for shifts ending next day
       const correspondingShift = shifts.find(
         (s) => s.endTime === shift.endTime
       );
@@ -118,11 +155,12 @@ const WorkdayConfigSelector: React.FC<WorkdayConfigSelectorProps> = ({
     };
   }, []);
 
+  // Calculate duration between two times
   const calculateDuration = useCallback((start: string, end: string) => {
-    let [startHour, startMinute] = start.split(":").map(Number);
-    let [endHour, endMinute] = end.split(":").map(Number);
+    const [startHour, startMinute] = start.split(":").map(Number);
+    const [endHour, endMinute] = end.split(":").map(Number);
 
-    let startTotal = startHour * 60 + startMinute;
+    const startTotal = startHour * 60 + startMinute;
     let endTotal = endHour * 60 + endMinute;
 
     if (endTotal <= startTotal) {
@@ -132,6 +170,7 @@ const WorkdayConfigSelector: React.FC<WorkdayConfigSelectorProps> = ({
     return endTotal - startTotal;
   }, []);
 
+  // Format duration into human-readable string
   const formatDuration = (durationInMinutes: number) => {
     const hours = Math.floor(durationInMinutes / 60);
     const minutes = durationInMinutes % 60;
@@ -145,50 +184,68 @@ const WorkdayConfigSelector: React.FC<WorkdayConfigSelectorProps> = ({
     }
   };
 
+  // Memoized calculation of workday times
   const { startTime, endTime, isEndTimeNextDay } = useMemo(
-    () => calculateWorkdayTimes(workday.shifts),
-    [workday.shifts, calculateWorkdayTimes]
+    () => calculateWorkdayTimes(shifts),
+    [shifts, calculateWorkdayTimes]
   );
 
+  // Update workday start and end times when shifts change
   useEffect(() => {
     if (startTime !== workday.startTime || endTime !== workday.endTime) {
       onCreateWorkday({
         ...workday,
         startTime,
-        endTime,
+        endTime, // Ensure this property is updated
       });
     }
   }, [startTime, endTime, onCreateWorkday, workday]);
 
+  // Handle template selection
   const handleWorkDayTemplateSelect = useCallback(
     (value: string) => {
       setIsSelectDisabled(true);
       const selectedTemplate = templates.find((t) => t.id === value);
       if (selectedTemplate) {
-        const updatedShifts = selectedTemplate.shifts.map((shift) => ({
+        const newShifts: Shift[] = selectedTemplate.shifts.map((shift) => ({
           ...shift,
-          id: uuidv4(),
-          startTime: shift.startTime,
-          endTime: shift.endTime,
-          tasks: [],
+          id: uuidv4(), // Ensure unique ID
+          tasks: new Map<string, ShiftTaskInfo>(), // Initialize tasks as Map
           duration: calculateDuration(shift.startTime, shift.endTime),
         }));
+
+        setShifts(newShifts);
         onCreateWorkday({
           ...workday,
           id: value,
           title: selectedTemplate.title,
-          shifts: updatedShifts,
+          shifts: newShifts,
         });
         setSelectedTemplateId(value);
         setNewSetUp(false);
+
+        // Show success toast
+        toast({
+          title: "Template Applied",
+          description: `Workday template "${selectedTemplate.title}" has been applied.`,
+          variant: "default",
+        });
+      } else {
+        // Show error toast if template not found
+        toast({
+          title: "Template Not Found",
+          description: "The selected template could not be found.",
+          variant: "destructive",
+        });
       }
       setIsSelectDisabled(false);
     },
-    [templates, onCreateWorkday, workday, calculateDuration]
+    [templates, onCreateWorkday, workday, calculateDuration, toast]
   );
 
+  // Handle adding a new shift
   const handleAddShift = useCallback(() => {
-    const lastShift = workday.shifts[workday.shifts.length - 1];
+    const lastShift = shifts[shifts.length - 1];
     const newStartTime = lastShift ? lastShift.endTime : "09:00";
     const defaultEndTime = "17:00";
 
@@ -197,36 +254,79 @@ const WorkdayConfigSelector: React.FC<WorkdayConfigSelectorProps> = ({
       title: "New Shift",
       startTime: newStartTime,
       endTime: defaultEndTime,
-      tasks: [],
+      tasks: new Map<string, ShiftTaskInfo>(),
       duration: calculateDuration(newStartTime, defaultEndTime),
     };
-    onCreateWorkday({ ...workday, shifts: [...workday.shifts, newShift] });
-    setSelectedTemplateId(null);
-    setNewSetUp(true);
-  }, [workday, onCreateWorkday, calculateDuration]);
 
+    // Ensure uniqueness based on 'id'
+    if (!shifts.some((shift) => shift.id === newShift.id)) {
+      const updatedShifts = [...shifts, newShift];
+      setShifts(updatedShifts);
+      onCreateWorkday({ ...workday, shifts: updatedShifts });
+
+      setSelectedTemplateId(null);
+      setNewSetUp(true);
+
+      // Show success toast
+      toast({
+        title: "Shift Added",
+        description: `Shift "${newShift.title}" has been added.`,
+        variant: "default",
+      });
+    } else {
+      // Show error toast if duplicate
+      toast({
+        title: "Duplicate Shift",
+        description: "A shift with the same ID already exists.",
+        variant: "destructive",
+      });
+    }
+  }, [shifts, onCreateWorkday, workday, calculateDuration, toast]);
+
+  // Handle removing a shift
   const handleRemoveShift = useCallback(
     (shiftId: string) => {
-      const shiftIndex = workday.shifts.findIndex(
-        (shift) => shift.id === shiftId
-      );
-      if (shiftIndex === -1) return;
-
-      const updatedShifts = workday.shifts.filter(
-        (shift) => shift.id !== shiftId
-      );
-
-      if (shiftIndex < workday.shifts.length - 1 && updatedShifts.length > 0) {
-        const removedShift = workday.shifts[shiftIndex];
-        const nextShift = updatedShifts[shiftIndex];
-        const updatedNextShift: Shift = {
-          ...nextShift,
-          startTime: removedShift.endTime,
-          duration: calculateDuration(removedShift.endTime, nextShift.endTime),
-        };
-        updatedShifts[shiftIndex] = updatedNextShift;
+      const shiftToRemove = shifts.find((shift) => shift.id === shiftId);
+      if (!shiftToRemove) {
+        // Show error toast if shift not found
+        toast({
+          title: "Shift Not Found",
+          description: "The shift you are trying to remove does not exist.",
+          variant: "destructive",
+        });
+        return;
       }
 
+      const shiftIndex = shifts.findIndex((shift) => shift.id === shiftId);
+      if (shiftIndex === -1) return;
+
+      const updatedShifts = shifts.filter((shift) => shift.id !== shiftId);
+
+      // Update adjacent shifts if necessary
+      if (shiftIndex < shifts.length - 1 && updatedShifts.length > 0) {
+        const nextShiftIndex = shiftIndex; // Since the array has shifted
+        const nextShift = updatedShifts[nextShiftIndex];
+        const updatedNextShift: Shift = {
+          ...nextShift,
+          startTime: shiftToRemove.startTime, // Update to the startTime of the removed shift
+          duration: calculateDuration(shiftToRemove.startTime, nextShift.endTime),
+        };
+        // Replace the next shift in updatedShifts
+        updatedShifts[nextShiftIndex] = updatedNextShift;
+      }
+
+      // Check for duplicate IDs after removal
+      if (hasDuplicateIds(updatedShifts)) {
+        console.error("Duplicate shift IDs detected after removal!");
+        toast({
+          title: "Update Error",
+          description: "Duplicate shift IDs detected after removal.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setShifts(updatedShifts);
       onCreateWorkday({ ...workday, shifts: updatedShifts });
 
       if (updatedShifts.length > 0) {
@@ -235,73 +335,104 @@ const WorkdayConfigSelector: React.FC<WorkdayConfigSelectorProps> = ({
         setSelectedTemplateId(null);
         setNewSetUp(false);
       }
+
+      // Show success toast
+      toast({
+        title: "Shift Removed",
+        description: `Shift "${shiftToRemove.title}" has been removed.`,
+        variant: "default",
+      });
     },
-    [workday, onCreateWorkday, calculateDuration]
+    [shifts, onCreateWorkday, workday, calculateDuration, toast]
   );
 
-  const handleShiftChange = useCallback(
-    (shiftId: string, field: keyof Shift, value: string) => {
-      const shiftIndex = workday.shifts.findIndex(
-        (shift) => shift.id === shiftId
-      );
-      if (shiftIndex === -1) return;
-
-      const updatedShifts = workday.shifts.map((shift) => ({ ...shift }));
-
-      if (field === "startTime" || field === "endTime" || field === "title") {
-        updatedShifts[shiftIndex][field] = value;
+  // Handle updating multiple fields of a shift
+  const handleShiftChangeMultiple = useCallback(
+    (shiftId: string, updatedFields: Partial<Shift>) => {
+      const shiftIndex = shifts.findIndex((shift) => shift.id === shiftId);
+      if (shiftIndex === -1) {
+        // Show error toast if shift not found
+        toast({
+          title: "Shift Not Found",
+          description: "The shift you are trying to update does not exist.",
+          variant: "destructive",
+        });
+        return;
       }
 
-      const currentShift = updatedShifts[shiftIndex];
-      currentShift.duration = calculateDuration(
-        currentShift.startTime,
-        currentShift.endTime
-      );
+      const updatedShifts = [...shifts];
+      const existingShift = updatedShifts[shiftIndex];
+      const updatedShift: Shift = { ...existingShift, ...updatedFields };
 
-      if (field === "endTime" && shiftIndex < updatedShifts.length - 1) {
-        const nextShift = updatedShifts[shiftIndex + 1];
-        nextShift.startTime = value;
-        nextShift.duration = calculateDuration(
-          nextShift.startTime,
-          nextShift.endTime
+      // Recalculate duration if startTime or endTime changes
+      if (updatedFields.startTime || updatedFields.endTime) {
+        updatedShift.duration = calculateDuration(
+          updatedShift.startTime,
+          updatedShift.endTime
         );
       }
 
-      if (field === "startTime" && shiftIndex > 0) {
-        const previousShift = updatedShifts[shiftIndex - 1];
-        previousShift.endTime = value;
-        previousShift.duration = calculateDuration(
-          previousShift.startTime,
-          previousShift.endTime
-        );
+      updatedShifts[shiftIndex] = updatedShift;
+
+      // Update adjacent shifts if endTime changes
+      if (updatedFields.endTime && shiftIndex < updatedShifts.length - 1) {
+        const nextShift = { ...updatedShifts[shiftIndex + 1] };
+        nextShift.startTime = updatedFields.endTime;
+        nextShift.duration = calculateDuration(nextShift.startTime, nextShift.endTime);
+        updatedShifts[shiftIndex + 1] = nextShift;
       }
 
+      // Update adjacent shifts if startTime changes
+      if (updatedFields.startTime && shiftIndex > 0) {
+        const previousShift = { ...updatedShifts[shiftIndex - 1] };
+        previousShift.endTime = updatedFields.startTime;
+        previousShift.duration = calculateDuration(previousShift.startTime, updatedFields.startTime);
+        updatedShifts[shiftIndex - 1] = previousShift;
+      }
+
+      // Check for duplicate IDs after update
+      if (hasDuplicateIds(updatedShifts)) {
+        console.error("Duplicate shift IDs detected after update!");
+        toast({
+          title: "Update Error",
+          description: "Duplicate shift IDs detected after update.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setShifts(updatedShifts);
       onCreateWorkday({ ...workday, shifts: updatedShifts });
-    },
-    [workday, onCreateWorkday, calculateDuration]
-  );
 
-  const toggleShiftExpansion = (shiftId: string) => {
-    setExpandedShifts((prev) =>
-      prev.includes(shiftId)
-        ? prev.filter((id) => id !== shiftId)
-        : [...prev, shiftId]
-    );
-  };
+      // Show success toast
+      toast({
+        title: "Shift Updated",
+        description: `Shift "${updatedShift.title}" has been updated.`,
+        variant: "default",
+      });
+    },
+    [shifts, onCreateWorkday, workday, calculateDuration, toast]
+  );
 
   return (
     <Card className="bg-white shadow-md">
       <CardHeader className="bg-blue-50 py-3 px-4 border-b border-blue-100">
-        <CardTitle className="text-lg font-semibold text-blue-800">
-          Day {dayIndex + 1} Configuration
+        <CardTitle className="flex items-center justify-between text-xl font-bold">
+          <span className="text-blue-700">
+            Day {dayIndex + 1} Configuration
+          </span>
+          <span className="text-gray-600 text-sm font-medium">
+            {workday.date}
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-4">
+        {/* Template Selection */}
         <div className="mb-4">
           <Select
             onValueChange={handleWorkDayTemplateSelect}
             value={selectedTemplateId || undefined}
-            
+            disabled={isSelectDisabled}
           >
             <SelectTrigger className="w-full border border-gray-300">
               <SelectValue placeholder="Select Shift Template">
@@ -318,10 +449,11 @@ const WorkdayConfigSelector: React.FC<WorkdayConfigSelectorProps> = ({
           </Select>
         </div>
 
+        {/* Shifts List */}
         <div className="space-y-2 mb-4">
-          {workday.shifts.map((shift) => (
+          {shifts.map((shift) => (
             <div
-              key={shift.id}
+              key={shift.id} // Ensures unique key for each shift
               className="border border-gray-200 rounded-md overflow-hidden"
             >
               <div className="flex items-center justify-between bg-gray-50 p-2">
@@ -364,7 +496,7 @@ const WorkdayConfigSelector: React.FC<WorkdayConfigSelectorProps> = ({
                   </Button>
                 </div>
               </div>
-              {editingShiftId === shift.id && (
+              {editingShiftId === shift.id && editedShiftData && (
                 <div
                   className="overflow-hidden"
                   style={{
@@ -374,9 +506,10 @@ const WorkdayConfigSelector: React.FC<WorkdayConfigSelectorProps> = ({
                 >
                   <div className="bg-gray-100 p-3">
                     <div className="grid grid-cols-3 gap-2 mb-2">
+                      {/* Shift Title */}
                       <input
                         type="text"
-                        value={editedShiftData?.title || ""}
+                        value={editedShiftData.title}
                         onChange={(e) =>
                           setEditedShiftData((prev) =>
                             prev ? { ...prev, title: e.target.value } : null
@@ -385,6 +518,7 @@ const WorkdayConfigSelector: React.FC<WorkdayConfigSelectorProps> = ({
                         className="col-span-3 p-1 border rounded"
                         placeholder="Shift Title"
                       />
+                      {/* Start Time */}
                       <div>
                         <Label className="text-xs">Start Time</Label>
                         <TimePicker
@@ -393,13 +527,14 @@ const WorkdayConfigSelector: React.FC<WorkdayConfigSelectorProps> = ({
                               prev ? { ...prev, startTime: value || "" } : null
                             )
                           }
-                          value={editedShiftData?.startTime || ""}
+                          value={editedShiftData.startTime}
                           format="HH:mm"
                           disableClock={true}
                           clearIcon={null}
                           className="w-full p-1 border rounded"
                         />
                       </div>
+                      {/* End Time */}
                       <div>
                         <Label className="text-xs">End Time</Label>
                         <TimePicker
@@ -408,31 +543,22 @@ const WorkdayConfigSelector: React.FC<WorkdayConfigSelectorProps> = ({
                               prev ? { ...prev, endTime: value || "" } : null
                             )
                           }
-                          value={editedShiftData?.endTime || ""}
+                          value={editedShiftData.endTime}
                           format="HH:mm"
                           disableClock={true}
                           clearIcon={null}
                           className="w-full p-1 border rounded"
                         />
                       </div>
+                      {/* Save Button */}
                       <Button
                         onClick={() => {
                           if (editedShiftData) {
-                            handleShiftChange(
-                              shift.id,
-                              "title",
-                              editedShiftData.title
-                            );
-                            handleShiftChange(
-                              shift.id,
-                              "startTime",
-                              editedShiftData.startTime
-                            );
-                            handleShiftChange(
-                              shift.id,
-                              "endTime",
-                              editedShiftData.endTime
-                            );
+                            handleShiftChangeMultiple(shift.id, {
+                              title: editedShiftData.title,
+                              startTime: editedShiftData.startTime,
+                              endTime: editedShiftData.endTime,
+                            });
                           }
                           setEditingShiftId(null);
                           setEditedShiftData(null);
@@ -449,6 +575,7 @@ const WorkdayConfigSelector: React.FC<WorkdayConfigSelectorProps> = ({
           ))}
         </div>
 
+        {/* Add Shift Button */}
         <Button
           onClick={handleAddShift}
           className="w-full bg-green-500 hover:bg-green-600 text-white text-sm py-2 px-2 rounded"
@@ -457,10 +584,11 @@ const WorkdayConfigSelector: React.FC<WorkdayConfigSelectorProps> = ({
           Add Shift
         </Button>
 
+        {/* Workday Times Display */}
         <div className="mt-4 bg-blue-50 p-2 rounded text-sm">
           <div className="flex justify-between">
             <span>
-              Workday: {workday.startTime} - {workday.endTime}
+              Workday: {startTime} - {endTime}
             </span>
             {isEndTimeNextDay && (
               <span className="text-blue-600">Next Day</span>

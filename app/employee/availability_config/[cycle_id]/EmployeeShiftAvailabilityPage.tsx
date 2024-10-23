@@ -5,35 +5,10 @@ import { Calendar as CalendarIcon, Clock } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ShiftCycleWithWorkdaysAndShifts } from "@/types/tableDataTypes";
 
 // Types and interfaces
 type TimeCategory = "Unavailable" | "Desirable" | "Undesirable" | "None";
-
-interface Shift {
-  id: string;
-  duration: number;
-  startTime: string;
-  endTime: string;
-  title: string;
-}
-
-interface Workday {
-  id: string;
-  title: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  shifts: Shift[];
-}
-
-interface ShiftCycle {
-  id: string;
-  title: string;
-  numWorkDays: number;
-  startDate: string;
-  endDate: string;
-  workdays: Workday[];
-}
 
 interface ShiftPreference {
   workdayId: string;
@@ -42,7 +17,7 @@ interface ShiftPreference {
 }
 
 interface EmployeeShiftAvailabilityPageProps {
-  shiftCycle: ShiftCycle;
+  shiftCycle: ShiftCycleWithWorkdaysAndShifts;
 }
 
 const EmployeeShiftAvailabilityPage: React.FC<EmployeeShiftAvailabilityPageProps> = ({shiftCycle}) => {
@@ -72,7 +47,7 @@ const EmployeeShiftAvailabilityPage: React.FC<EmployeeShiftAvailabilityPageProps
   };
 
   return (
-    <Card className="max-w-6xl mx-auto mt-10">
+    <Card className=" mx-auto mt-3">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CalendarIcon className="w-6 h-6" />
@@ -96,7 +71,7 @@ const EmployeeShiftAvailabilityPage: React.FC<EmployeeShiftAvailabilityPageProps
                         <span className="font-medium">{shift.title}</span>
                         <Clock className="w-4 h-4" />
                       </div>
-                      <div className="text-sm mb-2">{shift.startTime} - {shift.endTime}</div>
+                      <div className="text-sm mb-2">{shift.start_time} - {shift.end_time}</div>
                       <Select
                         value={getShiftCategory(workday.id, shift.id)}
                         onValueChange={(value) => handleShiftPreference(workday.id, shift.id, value as TimeCategory)}

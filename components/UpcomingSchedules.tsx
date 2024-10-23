@@ -65,7 +65,9 @@ const UpcomingSchedules: React.FC = () => {
         const data = await response.json();
 
         setUpcomingShifts(data as UpcomingShift[]);
-      } catch (err: any) {
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      catch (err: any) {
         setError(err.message || "An error occurred.");
       } finally {
         setLoading(false);

@@ -1,14 +1,14 @@
 import { createClient } from "@/utils/supabase/server";
 import TopNavBar from "@/components/NavBar";
 
-export default async function RootLayout({
+export default async function HomeLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
     const supabase = createClient();
 
-  const {data: { user },error,} = await supabase.auth.getUser();
+  const {data: { user }} = await supabase.auth.getUser();
   
   console.log(`${user?.user_metadata.business_id}`)
   const { data, error: companyError } = await supabase.from("businesses")
@@ -21,7 +21,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body>
-        <TopNavBar business_name = {data?.name}/>
+        <TopNavBar businessName = {data?.name ?? "Log in"}/>
         {children}
       </body>
     </html>

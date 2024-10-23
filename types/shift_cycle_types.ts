@@ -33,7 +33,7 @@ export enum ShiftCycleStatus {
   Complete = 'complete'
 }
 
-export interface ShiftCycle {
+export interface NewShiftCycle {
   id: string;
   title: string;
   numWorkDays: number;

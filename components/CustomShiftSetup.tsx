@@ -148,7 +148,7 @@ const CustomShiftSetup: React.FC<CustomShiftSetupProps> = ({ workdayDuration, st
 
   const updateShiftEndTimes = () => {
     setShifts((prevShifts) => {
-      let updatedShifts = [...prevShifts];
+      const updatedShifts = [...prevShifts];
       for (let i = 0; i < updatedShifts.length; i++) {
         const startTime = i === 0 ? updatedShifts[i].startTime : updatedShifts[i - 1].endTime;
         updatedShifts[i] = {

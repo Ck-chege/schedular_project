@@ -1,6 +1,3 @@
-import { createClient } from "@/utils/supabase/server";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import UserAdminForm from "./UserAdminForm";
 
 export default async function UserAdminRegistrationPage({
@@ -9,7 +6,6 @@ export default async function UserAdminRegistrationPage({
   params: { business_id: string };
 }) {
 
-  const supabase = createClient()
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">

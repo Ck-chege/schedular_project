@@ -58,10 +58,9 @@ const ConfigureWorkday: React.FC<ConfigureWorkdayProps> = ({ onConfigure, initia
     [updateConfig]
   );
 
-  const handleEndTimeChange = useCallback(
-    (newEndTime: string) => {
+  const handleEndTimeChange = useCallback((newEndTime: string) => {
       const start = new Date(`2000-01-01T${config.startTime}:00`);
-      let end = new Date(`2000-01-01T${newEndTime}:00`);
+      const end = new Date(`2000-01-01T${newEndTime}:00`);
 
       if (end <= start) {
         end.setDate(end.getDate() + 1);
