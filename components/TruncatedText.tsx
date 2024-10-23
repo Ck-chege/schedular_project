@@ -1,5 +1,3 @@
-import exp from "constants";
-
 const TruncatedText = ({ text }: { text: string }) => {
     return (
       <div className="max-h-[3em] overflow-hidden relative">
